@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Shopping Assistant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<style>
+  :root{
+    --ink:#1B1B2F;
+    --paper:#FDFBF6;
+    --card:#FFFFFF;
+    --indigo:#22254B;
+    --marigold:#F5A623;
+    --marigold-deep:#D98A0B;
+    --teal:#0F7A6E;
+    --line:#EAE4D8;
+    --muted:#6B6B7B;
+    --success:#1E8E5A;
+    --radius:16px;
+    --shadow:0 8px 24px rgba(27,27,47,0.08);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    font-family:'Inter',sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.display{font-family:'Poppins',sans-serif;}
+
+  /* ---------- Top bar ---------- */
+  .topbar{
+    position:sticky; top:0; z-index:50;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 6vw;
+    background:var(--indigo);
+    color:#fff;
+  }
+  .brand{display:flex; align-items:center; gap:10px; font-family:'Poppins'; font-weight:700; font-size:1.15rem;}
+  .brand .dot{width:10px;height:10px;border-radius:50%;background:var(--marigold);box-shadow:0 0 0 4px rgba(245,166,35,0.25);}
+  .cart-btn{
+    position:relative; display:flex; align-items:center; gap:8px;
+    background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.2);
+    color:#fff; padding:9px 16px; border-radius:999px; cursor:pointer;
+    font-family:'Inter'; font-weight:600; font-size:0.9rem;
+    transition:background .2s ease;
+  }
+  .cart-btn:hover{background:rgba(255,255,255,0.16);}
+  .cart-count{
+    position:absolute; top:-8px; right:-8px;
+    background:var(--marigold); color:var(--indigo); font-weight:700;
+    font-size:0.72rem; min-width:20px; height:20px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+  }
+
+  /* ---------- Hero ---------- */
+  .hero{
+    padding:64px 6vw 40px;
+    text-align:center;
+    background:
+      radial-gradient(circle at 15% 20%, rgba(245,166,35,0.10), transparent 40%),
+      radial-gradient(circle at 85% 10%, rgba(15,122,110,0.10), transparent 45%),
+      var(--paper);
+  }
+  .eyebrow{
+    display:inline-block; font-size:0.75rem; letter-spacing:0.14em; text-transform:uppercase;
+    color:var(--teal); font-weight:700; margin-bottom:14px;
+  }
+  .hero h1{font-size:clamp(1.8rem,4vw,2.7rem); margin:0 0 12px; line-height:1.15;}
+  .hero h1 span{color:var(--marigold-deep);}
+  .hero p.sub{color:var(--muted); font-size:1.02rem; max-width:560px; margin:0 auto 30px;}
+
+  .search-wrap{max-width:640px; margin:0 auto;}
+  .search-box{
+    display:flex; align-items:center; gap:10px;
+    background:var(--card); border:2px solid var(--line); border-radius:999px;
+    padding:8px 8px 8px 22px; box-shadow:var(--shadow);
+    transition:border-color .2s ease;
+  }
+  .search-box:focus-within{border-color:var(--marigold);}
+  .search-box input{
+    flex:1; border:none; outline:none; font-size:1rem; font-family:'Inter'; padding:10px 0; background:transparent; color:var(--ink);
+  }
+  .search-box button{
+    background:var(--indigo); color:#fff; border:none; border-radius:999px;
+    padding:12px 24px; font-weight:700; font-family:'Inter'; cursor:pointer; font-size:0.92rem;
+    transition:transform .15s ease, background .2s ease;
+  }
+  .search-box button:hover{background:var(--marigold-deep); transform:translateY(-1px);}
+
+  .examples{margin-top:16px; display:flex; flex-wrap:wrap; gap:8px; justify-content:center;}
+  .chip-example{
+    font-size:0.82rem; color:var(--indigo); background:#fff; border:1px solid var(--line);
+    padding:7px 14px; border-radius:999px; cursor:pointer; font-family:'Inter'; font-weight:500;
+    transition:all .15s ease;
+  }
+  .chip-example:hover{border-color:var(--marigold); background:#FFF8EB;}
+
+  /* ---------- Results ---------- */
+  .results-section{padding:24px 6vw 70px; max-width:1180px; margin:0 auto;}
+  .results-heading{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:18px; flex-wrap:wrap; gap:8px;}
+  .results-heading h2{font-size:1.25rem; margin:0;}
+  .results-heading .count{color:var(--muted); font-size:0.88rem;}
+  .query-echo{color:var(--muted); font-size:0.88rem; margin-bottom:4px;}
+
+  .empty-state{
+    text-align:center; padding:60px 20px; color:var(--muted);
+    border:1.5px dashed var(--line); border-radius:var(--radius); background:#fff;
+  }
+  .empty-state .big{font-size:2rem; margin-bottom:8px;}
+
+  .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:20px;}
+  .card{
+    background:var(--card); border-radius:var(--radius); border:1px solid var(--line);
+    padding:20px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:10px;
+    animation:rise .35s ease both;
+  }
+  @keyframes rise{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);}}
+  .card:nth-child(1){animation-delay:.02s;}
+  .card:nth-child(2){animation-delay:.08s;}
+  .card:nth-child(3){animation-delay:.14s;}
+
+  .card-emoji{
+    font-size:2.4rem; width:64px; height:64px; display:flex; align-items:center; justify-content:center;
+    background:#FBF6EC; border-radius:14px;
+  }
+  .card h3{margin:2px 0 0; font-size:1.02rem; line-height:1.3;}
+  .card .cat{font-size:0.72rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--teal); font-weight:700;}
+  .price-row{display:flex; align-items:center; gap:10px; margin-top:2px;}
+  .price{font-family:'Poppins'; font-weight:700; font-size:1.15rem; color:var(--indigo);}
+  .mrp{color:var(--muted); font-size:0.82rem; text-decoration:line-through;}
+  .rating{display:flex; align-items:center; gap:5px; font-size:0.85rem; color:#B8860B; font-weight:600;}
+
+  .why-row{display:flex; flex-wrap:wrap; gap:6px; margin-top:2px;}
+  .why-chip{
+    font-size:0.7rem; background:#F1F8F5; color:var(--success); border:1px solid #D3EDE1;
+    padding:4px 9px; border-radius:999px; font-weight:600;
+  }
+
+  .card-actions{margin-top:auto; display:flex; gap:8px; padding-top:8px;}
+  .btn-add{
+    flex:1; padding:11px; border-radius:10px; border:1.5px solid var(--indigo); background:#fff;
+    color:var(--indigo); font-weight:700; cursor:pointer; font-family:'Inter'; font-size:0.86rem;
+    transition:all .15s ease;
+  }
+  .btn-add:hover{background:var(--indigo); color:#fff;}
+  .btn-add.added{background:var(--success); border-color:var(--success); color:#fff;}
+  .btn-buy{
+    flex:1; padding:11px; border-radius:10px; border:none; background:var(--marigold);
+    color:var(--indigo); font-weight:700; cursor:pointer; font-family:'Inter'; font-size:0.86rem;
+    transition:all .15s ease;
+  }
+  .btn-buy:hover{background:var(--marigold-deep); color:#fff;}
+
+  /* ---------- Cart Drawer ---------- */
+  .overlay{
+    position:fixed; inset:0; background:rgba(27,27,47,0.45); z-index:90;
+    opacity:0; pointer-events:none; transition:opacity .25s ease;
+  }
+  .overlay.open{opacity:1; pointer-events:auto;}
+  .drawer{
+    position:fixed; top:0; right:0; height:100%; width:min(400px,92vw);
+    background:#fff; z-index:100; box-shadow:-12px 0 30px rgba(0,0,0,0.15);
+    transform:translateX(100%); transition:transform .3s ease;
+    display:flex; flex-direction:column;
+  }
+  .drawer.open{transform:translateX(0);}
+  .drawer-head{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:20px 22px; border-bottom:1px solid var(--line);
+  }
+  .drawer-head h3{margin:0; font-size:1.05rem;}
+  .close-btn{background:none; border:none; font-size:1.3rem; cursor:pointer; color:var(--muted); line-height:1;}
+  .drawer-body{flex:1; overflow-y:auto; padding:14px 22px;}
+  .cart-item{display:flex; gap:12px; padding:14px 0; border-bottom:1px solid var(--line);}
+  .cart-item .ce{font-size:1.6rem; width:44px; height:44px; display:flex; align-items:center; justify-content:center; background:#FBF6EC; border-radius:10px; flex-shrink:0;}
+  .cart-item-info{flex:1;}
+  .cart-item-info h4{margin:0 0 3px; font-size:0.9rem;}
+  .cart-item-info .p{font-weight:700; color:var(--indigo); font-size:0.88rem;}
+  .qty-row{display:flex; align-items:center; gap:8px; margin-top:6px;}
+  .qty-row button{
+    width:24px; height:24px; border-radius:6px; border:1px solid var(--line); background:#fff; cursor:pointer; font-weight:700;
+  }
+  .qty-row span{font-size:0.85rem; font-weight:600; min-width:16px; text-align:center;}
+  .remove-link{background:none; border:none; color:#C24545; font-size:0.76rem; cursor:pointer; margin-left:auto; text-decoration:underline;}
+  .cart-empty{text-align:center; color:var(--muted); padding:60px 10px; font-size:0.9rem;}
+
+  .drawer-foot{padding:18px 22px; border-top:1px solid var(--line);}
+  .total-row{display:flex; justify-content:space-between; font-family:'Poppins'; font-weight:700; font-size:1.1rem; margin-bottom:14px;}
+  .checkout-btn{
+    width:100%; padding:14px; border:none; border-radius:12px; background:var(--indigo); color:#fff;
+    font-weight:700; font-size:0.95rem; cursor:pointer; font-family:'Inter';
+    transition:background .2s ease;
+  }
+  .checkout-btn:hover{background:var(--marigold-deep);}
+  .checkout-btn:disabled{background:#C9C9D3; cursor:not-allowed;}
+
+  /* ---------- Success page ---------- */
+  .success-screen{
+    position:fixed; inset:0; background:var(--paper); z-index:200;
+    display:none; align-items:center; justify-content:center; flex-direction:column; text-align:center; padding:20px;
+  }
+  .success-screen.open{display:flex;}
+  .success-badge{
+    width:88px; height:88px; border-radius:50%; background:#E8F7EF; color:var(--success);
+    display:flex; align-items:center; justify-content:center; font-size:2.6rem; margin-bottom:22px;
+    animation:pop .4s ease;
+  }
+  @keyframes pop{0%{transform:scale(0);} 70%{transform:scale(1.15);} 100%{transform:scale(1);}}
+  .success-screen h2{margin:0 0 8px; font-size:1.6rem;}
+  .success-screen p{color:var(--muted); margin:0 0 4px;}
+  .order-id{
+    font-family:monospace; background:#fff; border:1px solid var(--line); padding:8px 16px;
+    border-radius:8px; margin:18px 0; font-size:0.85rem; color:var(--indigo);
+  }
+  .success-actions{margin-top:20px;}
+  .back-btn{
+    padding:12px 26px; border-radius:999px; border:none; background:var(--indigo); color:#fff;
+    font-weight:700; cursor:pointer; font-family:'Inter';
+  }
+
+  footer{text-align:center; padding:26px; color:var(--muted); font-size:0.8rem;}
+
+  @media (max-width:520px){
+    .topbar{padding:14px 5vw;}
+    .hero{padding:44px 5vw 30px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand"><span class="dot"></span> Smart Shopping Assistant</div>
+  <button class="cart-btn" onclick="openCart()">
+    🛒 Cart <span class="cart-count" id="cartCount">0</span>
+  </button>
+</div>
+
+<section class="hero">
+  <span class="eyebrow">Buildathon Demo · Sample Catalog</span>
+  <h1>Tell me what you need,<br><span>I'll find the right product.</span></h1>
+  <p class="sub">Type a plain-English request — a category and a budget — and get the 3 best matches ranked by rating and value.</p>
+
+  <div class="search-wrap">
+    <div class="search-box">
+      <input id="searchInput" type="text" placeholder="I need headphones under ₹2000" onkeydown="if(event.key==='Enter')runSearch()">
+      <button onclick="runSearch()">Search</button>
+    </div>
+    <div class="examples">
+      <span class="chip-example" onclick="quickSearch('headphones under 2000')">headphones under ₹2000</span>
+      <span class="chip-example" onclick="quickSearch('shoes under 3000')">shoes under ₹3000</span>
+      <span class="chip-example" onclick="quickSearch('smartwatch under 2500')">smartwatch under ₹2500</span>
+      <span class="chip-example" onclick="quickSearch('backpack under 1500')">backpack under ₹1500</span>
+    </div>
+  </div>
+</section>
+
+<section class="results-section" id="resultsSection" style="display:none;">
+  <div class="query-echo" id="queryEcho"></div>
+  <div class="results-heading">
+    <h2>Recommended for you</h2>
+    <span class="count" id="resultCount"></span>
+  </div>
+  <div id="resultsGrid" class="grid"></div>
+</section>
+
+<footer>Built as a beginner buildathon project · Sample data, client-side only · Razorpay Test Mode</footer>
+
+<!-- Cart Drawer -->
+<div class="overlay" id="overlay" onclick="closeCart()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-head">
+    <h3>Your Cart</h3>
+    <button class="close-btn" onclick="closeCart()">✕</button>
+  </div>
+  <div class="drawer-body" id="drawerBody"></div>
+  <div class="drawer-foot">
+    <div class="total-row"><span>Total</span><span id="cartTotal">₹0</span></div>
+    <button class="checkout-btn" id="checkoutBtn" onclick="startPayment(getCartTotal())">Buy Now · Pay with Razorpay</button>
+  </div>
+</div>
+
+<!-- Success screen -->
+<div class="success-screen" id="successScreen">
+  <div class="success-badge">✓</div>
+  <h2>Payment Successful!</h2>
+  <p id="successAmount"></p>
+  <p>Your order has been placed.</p>
+  <div class="order-id" id="orderId"></div>
+  <div class="success-actions">
+    <button class="back-btn" onclick="closeSuccess()">Continue Shopping</button>
+  </div>
+</div>
+
+<script>
+/* ============ Sample product catalog ============ */
+const PRODUCTS = [
+  {id:1, name:"boAt Rockerz 235v2 Bluetooth Earphones", category:"headphones", price:1299, mrp:2490, rating:4.2, emoji:"🎧"},
+  {id:2, name:"Boult Audio ProBass Wireless Neckband", category:"headphones", price:899, mrp:1999, rating:4.0, emoji:"🎧"},
+  {id:3, name:"Zebronics Zeb-Thunder Bluetooth Headphone", category:"headphones", price:1499, mrp:2999, rating:3.9, emoji:"🎧"},
+  {id:4, name:"boAt Bassheads 100 Wired Earphones", category:"headphones", price:349, mrp:799, rating:4.1, emoji:"🎧"},
+  {id:5, name:"JBL Tune 510BT Wireless On-Ear Headphones", category:"headphones", price:1999, mrp:3499, rating:4.4, emoji:"🎧"},
+  {id:6, name:"Noise ColorFit Pro 4 Smartwatch", category:"smartwatch", price:2299, mrp:4999, rating:4.1, emoji:"⌚"},
+  {id:7, name:"Fire-Boltt Ninja Call Pro Smartwatch", category:"smartwatch", price:1399, mrp:3999, rating:3.9, emoji:"⌚"},
+  {id:8, name:"boAt Wave Lite Smartwatch", category:"smartwatch", price:1199, mrp:2999, rating:3.8, emoji:"⌚"},
+  {id:9, name:"Campus Sutra Men's Running Shoes", category:"shoes", price:1099, mrp:2199, rating:4.0, emoji:"👟"},
+  {id:10, name:"Bourge Men's Loire Running Shoes", category:"shoes", price:799, mrp:1599, rating:3.9, emoji:"👟"},
+  {id:11, name:"ASIAN Men's Wonder Sports Shoes", category:"shoes", price:649, mrp:1499, rating:3.7, emoji:"👟"},
+  {id:12, name:"Puma Men's Softride Running Shoes", category:"shoes", price:2799, mrp:4999, rating:4.4, emoji:"👟"},
+  {id:13, name:"American Tourister Backpack 32L", category:"backpack", price:999, mrp:2199, rating:4.2, emoji:"🎒"},
+  {id:14, name:"Skybags Casual Laptop Backpack", category:"backpack", price:749, mrp:1699, rating:4.0, emoji:"🎒"},
+  {id:15, name:"F Gear Military Backpack 32L", category:"backpack", price:599, mrp:1299, rating:3.8, emoji:"🎒"},
+  {id:16, name:"Redmi 10 Power Bank 10000mAh", category:"powerbank", price:899, mrp:1499, rating:4.3, emoji:"🔋"},
+  {id:17, name:"Mi Power Bank 3i 20000mAh", category:"powerbank", price:1399, mrp:2199, rating:4.5, emoji:"🔋"},
+  {id:18, name:"boAt Airdopes 141 True Wireless Earbuds", category:"earbuds", price:1199, mrp:2490, rating:4.1, emoji:"🎧"},
+  {id:19, name:"Realme Buds T110 Bluetooth Earbuds", category:"earbuds", price:799, mrp:1499, rating:4.0, emoji:"🎧"},
+  {id:20, name:"Noise Buds VS104 Truly Wireless Earbuds", category:"earbuds", price:599, mrp:1299, rating:3.8, emoji:"🎧"},
+];
+
+/* Map common query words to catalog categories */
+const CATEGORY_ALIASES = {
+  headphones:"headphones", headphone:"headphones", earphones:"headphones", earphone:"headphones",
+  earbuds:"earbuds", earbud:"earbuds", buds:"earbuds",
+  smartwatch:"smartwatch", watch:"smartwatch", watches:"smartwatch",
+  shoes:"shoes", shoe:"shoes", sneakers:"shoes", footwear:"shoes",
+  backpack:"backpack", bag:"backpack", bags:"backpack",
+  powerbank:"powerbank", "power bank":"powerbank", charger:"powerbank",
+};
+
+/* ============ Cart state ============ */
+let cart = JSON.parse(localStorage.getItem("ssa_cart") || "{}"); // {productId: qty}
+
+function saveCart(){ localStorage.setItem("ssa_cart", JSON.stringify(cart)); renderCartCount(); }
+function renderCartCount(){
+  const n = Object.values(cart).reduce((a,b)=>a+b,0);
+  document.getElementById("cartCount").textContent = n;
+}
+renderCartCount();
+
+/* ============ Search & recommendation logic ============ */
+function quickSearch(q){
+  document.getElementById("searchInput").value = q;
+  runSearch();
+}
+
+function parseQuery(raw){
+  const q = raw.toLowerCase();
+  let budget = null;
+  const priceMatch = q.match(/(?:under|below|less than|within)\s*(?:₹|rs\.?|inr)?\s*(\d{2,6})/i)
+                    || q.match(/(?:₹|rs\.?|inr)\s*(\d{2,6})/i);
+  if(priceMatch) budget = parseInt(priceMatch[1],10);
+
+  let category = null;
+  for(const key in CATEGORY_ALIASES){
+    if(q.includes(key)){ category = CATEGORY_ALIASES[key]; break; }
+  }
+  return {budget, category, raw};
+}
+
+function scoreAndPick(budget, category){
+  let pool = PRODUCTS.filter(p => !category || p.category === category);
+  let inBudget = budget ? pool.filter(p => p.price <= budget) : pool;
+
+  let relaxed = false;
+  if(inBudget.length === 0 && pool.length > 0){
+    // relax: fall back to closest-priced items so the user still gets something useful
+    inBudget = [...pool].sort((a,b)=>a.price-b.price);
+    relaxed = true;
+  }
+
+  const ranked = [...inBudget].sort((a,b)=>{
+    if(b.rating !== a.rating) return b.rating - a.rating;
+    return a.price - b.price;
+  }).slice(0,3);
+
+  return {items:ranked, relaxed, poolEmpty: pool.length===0};
+}
+
+function whyChips(product, budget, allShown){
+  const chips = [];
+  if(budget && product.price <= budget) chips.push("✓ Within budget");
+  if(product.rating >= 4.2) chips.push("★ Top rated");
+  const cheapest = Math.min(...allShown.map(p=>p.price));
+  if(product.price === cheapest) chips.push("💰 Best value");
+  if(chips.length === 0) chips.push("Closest match");
+  return chips;
+}
+
+function runSearch(){
+  const raw = document.getElementById("searchInput").value.trim();
+  if(!raw) return;
+  const {budget, category} = parseQuery(raw);
+  const {items, relaxed, poolEmpty} = scoreAndPick(budget, category);
+
+  const section = document.getElementById("resultsSection");
+  section.style.display = "block";
+  document.getElementById("queryEcho").textContent = `Showing results for: "${raw}"`;
+
+  const grid = document.getElementById("resultsGrid");
+  const countEl = document.getElementById("resultCount");
+
+  if(poolEmpty || items.length === 0){
+    countEl.textContent = "";
+    grid.innerHTML = "";
+    section.querySelector(".results-heading").insertAdjacentHTML("afterend",
+      `<div class="empty-state" id="emptyMsg"><div class="big">🔍</div>No matching products found. Try a different category, like "shoes" or "backpack".</div>`);
+    setTimeout(()=>{ const e=document.getElementById("emptyMsg"); if(e) e.remove(); }, 4000);
+    return;
+  }
+
+  countEl.textContent = relaxed
+    ? `No exact budget match — showing closest ${items.length} option(s)`
+    : `${items.length} match${items.length>1?'es':''} found`;
+
+  grid.innerHTML = items.map(p => {
+    const chipsHtml = whyChips(p, budget, items)
+      .map(c => '<span class="why-chip">' + c + '</span>')
+      .join('');
+    return `
+    <div class="card">
+      <div class="card-emoji">${p.emoji}</div>
+      <div class="cat">${p.category}</div>
+      <h3>${p.name}</h3>
+      <div class="price-row">
+        <span class="price">₹${p.price.toLocaleString('en-IN')}</span>
+        <span class="mrp">₹${p.mrp.toLocaleString('en-IN')}</span>
+      </div>
+      <div class="rating">⭐ ${p.rating.toFixed(1)}</div>
+      <div class="why-row">${chipsHtml}</div>
+      <div class="card-actions">
+        <button class="btn-add" id="add-${p.id}" onclick="addToCart(${p.id}, this)">Add to Cart</button>
+        <button class="btn-buy" onclick="buyNow(${p.id})">Buy Now</button>
+      </div>
+    </div>
+  `;
+  }).join('');
+}
+
+function findProduct(id){ return PRODUCTS.find(p=>p.id===id); }
+
+function addToCart(id, btn){
+  cart[id] = (cart[id]||0) + 1;
+  saveCart();
+  if(btn){
+    btn.textContent = "Added ✓";
+    btn.classList.add("added");
+    setTimeout(()=>{ btn.textContent = "Add to Cart"; btn.classList.remove("added"); }, 1200);
+  }
+}
+
+function buyNow(id){
+  const p = findProduct(id);
+  startPayment(p.price, [{...p, qty:1}]);
+}
+
+/* ============ Cart drawer ============ */
+function openCart(){
+  renderDrawer();
+  document.getElementById("drawer").classList.add("open");
+  document.getElementById("overlay").classList.add("open");
+}
+function closeCart(){
+  document.getElementById("drawer").classList.remove("open");
+  document.getElementById("overlay").classList.remove("open");
+}
+
+function getCartItems(){
+  return Object.entries(cart).map(([id,qty])=>({...findProduct(parseInt(id)), qty})).filter(x=>x.id);
+}
+function getCartTotal(){
+  return getCartItems().reduce((sum,i)=>sum + i.price*i.qty, 0);
+}
+
+function renderDrawer(){
+  const items = getCartItems();
+  const body = document.getElementById("drawerBody");
+  const checkoutBtn = document.getElementById("checkoutBtn");
+
+  if(items.length === 0){
+    body.innerHTML = `<div class="cart-empty">Your cart is empty.<br>Search for a product to get started.</div>`;
+    checkoutBtn.disabled = true;
+  } else {
+    checkoutBtn.disabled = false;
+    body.innerHTML = items.map(i => `
+      <div class="cart-item">
+        <div class="ce">${i.emoji}</div>
+        <div class="cart-item-info">
+          <h4>${i.name}</h4>
+          <div class="p">₹${i.price.toLocaleString('en-IN')}</div>
+          <div class="qty-row">
+            <button onclick="changeQty(${i.id},-1)">−</button>
+            <span>${i.qty}</span>
+            <button onclick="changeQty(${i.id},1)">+</button>
+            <button class="remove-link" onclick="removeFromCart(${i.id})">Remove</button>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+  document.getElementById("cartTotal").textContent = "₹" + getCartTotal().toLocaleString('en-IN');
+}
+
+function changeQty(id, delta){
+  cart[id] = (cart[id]||0) + delta;
+  if(cart[id] <= 0) delete cart[id];
+  saveCart(); renderDrawer();
+}
+function removeFromCart(id){ delete cart[id]; saveCart(); renderDrawer(); }
+
+/* ============ Razorpay test payment ============ */
+// Replace with your own Razorpay TEST key id from the Razorpay Dashboard
+// (Settings -> API Keys -> Generate Test Key). Test keys start with "rzp_test_".
+const RAZORPAY_TEST_KEY = "rzp_test_YOUR_KEY_HERE";
+
+function startPayment(amount, itemsOverride){
+  if(!amount || amount <= 0){ alert("Your cart is empty."); return; }
+
+  const items = itemsOverride || getCartItems();
+
+  if(typeof Razorpay === "undefined" || RAZORPAY_TEST_KEY.includes("YOUR_KEY_HERE")){
+    // Fallback demo mode: lets the flow be demoed end-to-end without live credentials.
+    const proceed = confirm(
+      "Razorpay test key not configured yet.\n\n" +
+      "To enable real Razorpay test checkout: get a test key (starts with rzp_test_) " +
+      "from the Razorpay Dashboard and set RAZORPAY_TEST_KEY in the code.\n\n" +
+      "Continue with a simulated test payment instead?"
+    );
+    if(proceed) simulateSuccess(amount, items);
+    return;
+  }
+
+  const options = {
+    key: RAZORPAY_TEST_KEY,
+    amount: amount * 100, // paise
+    currency: "INR",
+    name: "Smart Shopping Assistant",
+    description: items.map(i=>i.name).join(", ").slice(0,120),
+    handler: function(response){
+      simulateSuccess(amount, items, response.razorpay_payment_id);
+    },
+    theme: { color: "#22254B" },
+    modal: {
+      ondismiss: function(){ /* user closed the checkout */ }
+    }
+  };
+
+  try{
+    const rzp = new Razorpay(options);
+    rzp.on('payment.failed', function(resp){
+      alert("Payment failed: " + resp.error.description);
+    });
+    rzp.open();
+  }catch(e){
+    alert("Couldn't open Razorpay checkout (" + e.message + "). Falling back to demo mode.");
+    simulateSuccess(amount, items);
+  }
+}
+
+function simulateSuccess(amount, items, paymentId){
+  closeCart();
+  const id = paymentId || ("TEST_" + Math.random().toString(36).slice(2,10).toUpperCase());
+  document.getElementById("successAmount").textContent = `₹${amount.toLocaleString('en-IN')} paid for ${items.length} item(s)`;
+  document.getElementById("orderId").textContent = "Payment ID: " + id;
+  document.getElementById("successScreen").classList.add("open");
+  // clear items that were part of this order if it was a whole-cart checkout
+  if(!items || items === getCartItems()) { cart = {}; saveCart(); }
+}
+
+function closeSuccess(){
+  document.getElementById("successScreen").classList.remove("open");
+}
+</script>
+</body>
+</html>
